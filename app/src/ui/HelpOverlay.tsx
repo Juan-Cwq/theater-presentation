@@ -10,9 +10,9 @@ const GROUPS: { title: string; items: Shortcut[] }[] = [
   {
     title: "Navigate",
     items: [
-      { keys: ["Scroll"], label: "Move through the slides" },
-      { keys: ["→", "Space"], label: "Next frame" },
-      { keys: ["←"], label: "Previous frame" },
+      { keys: ["→", "Space"], label: "Reveal next column · then next frame" },
+      { keys: ["←"], label: "Hide last column · then previous frame" },
+      { keys: ["Scroll"], label: "Jump between frames" },
       { keys: ["PgUp", "PgDn"], label: "Clicker back / forward" },
       { keys: ["Esc"], label: "Close an open panel" },
     ],

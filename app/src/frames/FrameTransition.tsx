@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import {
   motion,
   useAnimationControls,
@@ -9,19 +9,14 @@ import type { TransitionId } from "../content/types";
 import { prefersReducedMotion } from "../canvas/cameraStore";
 
 /**
- * Per-slide entrance transitions. Each frame declares a unique `transition`;
- * when the frame becomes the active (presented) frame, that animation plays
- * once. Non-active frames simply render in their resting state, so the map and
- * overview stay cheap — only the current frame ever animates.
- *
- * Two kinds of effect:
- *  • content — a transform/clip/opacity animation on the frame itself.
- *  • overlay — extra theatrical elements (curtains, blown leaves, a light
- *    sweep…) that mount only while the transition plays and remove themselves.
+ * Per-slide entrance for the frame *panel*. When a frame becomes active it
+ * settles in with a gentle, unique motion (rise, slide, iris, flip…). The
+ * theatrical "lights dim → year glows → brighten" wake is handled one level up
+ * in the deck, and the staggered content is driven by the reveal step, so this
+ * stays deliberately small: just the panel's own entrance.
  */
 
 const EASE_OUT = [0.22, 1, 0.36, 1] as const;
-const EASE_INOUT = [0.65, 0, 0.35, 1] as const;
 
 interface ContentSpec {
   from: TargetAndTransition;
@@ -32,71 +27,72 @@ interface ContentSpec {
 
 const CONTENT: Record<TransitionId, ContentSpec> = {
   curtain: {
-    from: { opacity: 0, scale: 0.985 },
-    to: { opacity: 1, scale: 1 },
-    transition: { duration: 0.5, delay: 0.34, ease: EASE_OUT },
+    from: { opacity: 0, y: 26, scale: 0.985 },
+    to: { opacity: 1, y: 0, scale: 1 },
+    transition: { duration: 0.7, ease: EASE_OUT },
   },
   rise: {
-    from: { opacity: 0, y: 80 },
+    from: { opacity: 0, y: 48 },
     to: { opacity: 1, y: 0 },
-    transition: { type: "spring", stiffness: 120, damping: 18 },
+    transition: { duration: 0.7, ease: EASE_OUT },
   },
   iris: {
     from: { clipPath: "circle(0% at 50% 50%)" },
     to: { clipPath: "circle(140% at 50% 50%)" },
-    transition: { duration: 0.75, ease: EASE_OUT },
+    transition: { duration: 0.8, ease: EASE_OUT },
   },
   leaves: {
-    from: { opacity: 0, x: -90, filter: "blur(8px)" },
+    from: { opacity: 0, x: -60, filter: "blur(6px)" },
     to: { opacity: 1, x: 0, filter: "blur(0px)" },
     transition: { duration: 0.7, ease: EASE_OUT },
   },
   shutter: {
-    from: { opacity: 0 },
-    to: { opacity: 1 },
-    transition: { duration: 0.4, delay: 0.38 },
+    from: { opacity: 0, scaleY: 0.8 },
+    to: { opacity: 1, scaleY: 1 },
+    transition: { duration: 0.65, ease: EASE_OUT },
+    origin: "center top",
   },
   unfold: {
-    from: { opacity: 0, scaleY: 0.02 },
+    from: { opacity: 0, scaleY: 0.06 },
     to: { opacity: 1, scaleY: 1 },
-    transition: { duration: 0.6, ease: EASE_OUT },
+    transition: { duration: 0.7, ease: EASE_OUT },
     origin: "top center",
   },
   "zoom-focus": {
-    from: { opacity: 0, scale: 1.14, filter: "blur(12px)" },
+    from: { opacity: 0, scale: 1.08, filter: "blur(10px)" },
     to: { opacity: 1, scale: 1, filter: "blur(0px)" },
-    transition: { duration: 0.6, ease: "easeOut" },
+    transition: { duration: 0.7, ease: "easeOut" },
   },
   flip: {
-    from: { opacity: 0, rotateX: 88 },
+    from: { opacity: 0, rotateX: 42 },
     to: { opacity: 1, rotateX: 0 },
-    transition: { duration: 0.7, ease: EASE_OUT },
+    transition: { duration: 0.75, ease: EASE_OUT },
     origin: "center top",
   },
   "slide-left": {
-    from: { opacity: 0, x: 120 },
+    from: { opacity: 0, x: 70 },
     to: { opacity: 1, x: 0 },
-    transition: { type: "spring", stiffness: 110, damping: 18 },
+    transition: { duration: 0.7, ease: EASE_OUT },
   },
   sweep: {
-    from: { opacity: 0.15 },
-    to: { opacity: 1 },
-    transition: { duration: 0.5, delay: 0.12 },
+    from: { opacity: 0, x: -40 },
+    to: { opacity: 1, x: 0 },
+    transition: { duration: 0.7, ease: EASE_OUT },
   },
   split: {
     from: { clipPath: "inset(0 50% 0 50%)" },
     to: { clipPath: "inset(0% 0% 0% 0%)" },
-    transition: { duration: 0.6, ease: EASE_OUT },
+    transition: { duration: 0.7, ease: EASE_OUT },
   },
   "blur-in": {
-    from: { opacity: 0, filter: "blur(18px)", scale: 1.03 },
+    from: { opacity: 0, filter: "blur(14px)", scale: 1.03 },
     to: { opacity: 1, filter: "blur(0px)", scale: 1 },
-    transition: { duration: 0.7, ease: "easeOut" },
+    transition: { duration: 0.75, ease: "easeOut" },
   },
   "finale-bow": {
-    from: { opacity: 0, y: 90, scale: 0.96 },
+    from: { opacity: 0, y: 60, scale: 0.97 },
     to: { opacity: 1, y: 0, scale: 1 },
-    transition: { type: "spring", stiffness: 120, damping: 20 },
+    transition: { duration: 0.8, ease: EASE_OUT },
   },
 };
 
@@ -122,30 +118,21 @@ export function FrameTransition({
   children: ReactNode;
 }) {
   const controls = useAnimationControls();
-  const [overlayKey, setOverlayKey] = useState(0);
-  const [playingOverlay, setPlayingOverlay] = useState<TransitionId | null>(null);
-
   const spec = effect ? CONTENT[effect] : undefined;
 
   useEffect(() => {
     if (!effect || !spec) return;
 
-    // Non-active (and reduced-motion) frames simply rest fully visible so they
-    // read correctly while scrolling past.
+    // Non-active (and reduced-motion) frames simply rest fully visible.
     if (!active || prefersReducedMotion()) {
       controls.set(REST);
       return;
     }
 
-    // Play the unique entrance. We intentionally (re)run the full set→start on
-    // every `active` activation — including StrictMode's double effect pass — so
-    // the animation is never orphaned mid-flight and left stuck at `from`.
+    // Re-run the full set→start on every activation (incl. StrictMode's double
+    // pass) so the animation is never orphaned mid-flight and left at `from`.
     let cancelled = false;
     controls.set(spec.from);
-    if (OVERLAYS[effect]) {
-      setPlayingOverlay(effect);
-      setOverlayKey((k) => k + 1);
-    }
     controls.start({ ...spec.to, transition: spec.transition }).then(() => {
       if (!cancelled) controls.set(REST);
     });
@@ -153,8 +140,6 @@ export function FrameTransition({
       cancelled = true;
     };
   }, [active, effect, spec, controls]);
-
-  const Overlay = playingOverlay ? OVERLAYS[playingOverlay] : undefined;
 
   return (
     <div
@@ -169,144 +154,6 @@ export function FrameTransition({
       >
         {children}
       </motion.div>
-
-      {Overlay && (
-        <Overlay key={overlayKey} onDone={() => setPlayingOverlay(null)} />
-      )}
     </div>
   );
 }
-
-/* ------------------------------------------------------------------ */
-/* Overlay effects                                                     */
-/* ------------------------------------------------------------------ */
-
-type OverlayProps = { onDone: () => void };
-
-const velvet =
-  "repeating-linear-gradient(90deg, #7d1a2b 0px, #a4263c 10px, #7d1a2b 22px), linear-gradient(#8f2033, #5c1322)";
-
-function CurtainOverlay({ onDone }: OverlayProps) {
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[32px]">
-      <motion.div
-        className="absolute inset-y-0 left-0 w-1/2"
-        style={{ background: velvet, boxShadow: "inset -24px 0 40px rgba(0,0,0,0.5)" }}
-        initial={{ x: 0 }}
-        animate={{ x: "-100%" }}
-        transition={{ duration: 0.85, ease: EASE_INOUT }}
-        onAnimationComplete={onDone}
-      />
-      <motion.div
-        className="absolute inset-y-0 right-0 w-1/2"
-        style={{ background: velvet, boxShadow: "inset 24px 0 40px rgba(0,0,0,0.5)" }}
-        initial={{ x: 0 }}
-        animate={{ x: "100%" }}
-        transition={{ duration: 0.85, ease: EASE_INOUT }}
-      />
-    </div>
-  );
-}
-
-function LeavesOverlay({ onDone }: OverlayProps) {
-  const leaves = Array.from({ length: 11 });
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[32px]">
-      {leaves.map((_, i) => {
-        const size = 26 + (i % 4) * 10;
-        const hue = i % 2 ? "#C58A3A" : "#9C6B2E";
-        return (
-          <motion.div
-            key={i}
-            className="absolute"
-            style={{
-              top: `${6 + ((i * 37) % 86)}%`,
-              left: -60,
-              width: size,
-              height: size,
-              background: `linear-gradient(135deg, ${hue}, #6f4a1f)`,
-              borderRadius: "0 100% 0 100%",
-            }}
-            initial={{ x: -60, opacity: 0, rotate: -30 }}
-            animate={{ x: 1760, opacity: [0, 1, 1, 0], rotate: 220 }}
-            transition={{
-              duration: 0.85 + (i % 3) * 0.14,
-              delay: i * 0.045,
-              ease: "easeOut",
-              times: [0, 0.12, 0.75, 1],
-            }}
-            onAnimationComplete={i === leaves.length - 1 ? onDone : undefined}
-          />
-        );
-      })}
-    </div>
-  );
-}
-
-function ShutterOverlay({ onDone }: OverlayProps) {
-  const bars = 9;
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[32px]">
-      {Array.from({ length: bars }).map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute left-0 w-full"
-          style={{
-            top: `${(i * 100) / bars}%`,
-            height: `${100 / bars + 0.5}%`,
-            background: "linear-gradient(180deg, #2a1f30, #171120)",
-            transformOrigin: "top",
-          }}
-          initial={{ scaleY: 1 }}
-          animate={{ scaleY: 0 }}
-          transition={{ duration: 0.5, delay: i * 0.055, ease: EASE_INOUT }}
-          onAnimationComplete={i === bars - 1 ? onDone : undefined}
-        />
-      ))}
-    </div>
-  );
-}
-
-function SweepOverlay({ onDone }: OverlayProps) {
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[32px]">
-      <motion.div
-        className="absolute inset-y-[-20%]"
-        style={{
-          width: "45%",
-          background:
-            "linear-gradient(100deg, transparent, rgba(217,170,63,0.55), transparent)",
-          filter: "blur(6px)",
-          transform: "skewX(-12deg)",
-        }}
-        initial={{ x: "-80%", opacity: 0 }}
-        animate={{ x: "200%", opacity: [0, 1, 1, 0] }}
-        transition={{ duration: 0.8, ease: "easeInOut", times: [0, 0.2, 0.8, 1] }}
-        onAnimationComplete={onDone}
-      />
-    </div>
-  );
-}
-
-function FinaleOverlay({ onDone }: OverlayProps) {
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[32px]">
-      <motion.div
-        className="absolute inset-x-0 top-0 h-full"
-        style={{ background: velvet, boxShadow: "inset 0 -30px 60px rgba(0,0,0,0.55)" }}
-        initial={{ y: 0 }}
-        animate={{ y: "-100%" }}
-        transition={{ duration: 0.95, ease: EASE_INOUT }}
-        onAnimationComplete={onDone}
-      />
-    </div>
-  );
-}
-
-const OVERLAYS: Partial<Record<TransitionId, (p: OverlayProps) => ReactNode>> = {
-  curtain: CurtainOverlay,
-  leaves: LeavesOverlay,
-  shutter: ShutterOverlay,
-  sweep: SweepOverlay,
-  "finale-bow": FinaleOverlay,
-};

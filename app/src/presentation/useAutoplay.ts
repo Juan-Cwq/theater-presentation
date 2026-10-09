@@ -9,19 +9,22 @@ import { frameByNumber, TOTAL_FRAMES } from "../content/frames";
  */
 export function useAutoplay(enabled: boolean, onFinish: () => void) {
   const index = usePresentation((s) => s.index);
+  const step = usePresentation((s) => s.step);
 
   const onFinishRef = useRef(onFinish);
   onFinishRef.current = onFinish;
 
   useEffect(() => {
     if (!enabled) return;
-    if (index >= TOTAL_FRAMES) {
+    const frame = frameByNumber(index);
+    if (index >= TOTAL_FRAMES && step >= frame.reveals) {
       onFinishRef.current();
       return;
     }
-    const frame = frameByNumber(index);
-    const delay = Math.max(2600, frame.duration ?? 4000);
+    // Pace each reveal slot by a share of the frame's duration.
+    const slots = frame.reveals + 1;
+    const delay = Math.max(1400, (frame.duration ?? 5000) / slots);
     const id = window.setTimeout(() => usePresentation.getState().next(), delay);
     return () => window.clearTimeout(id);
-  }, [enabled, index]);
+  }, [enabled, index, step]);
 }

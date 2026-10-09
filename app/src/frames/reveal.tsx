@@ -63,7 +63,7 @@ export function Reveal({
       transition={
         instant
           ? { duration: 0 }
-          : { type: "spring", stiffness: 260, damping: 30, mass: 0.7 }
+          : { duration: 0.6, ease: [0.22, 1, 0.36, 1] }
       }
       style={{ pointerEvents: active ? "auto" : "none" }}
     >

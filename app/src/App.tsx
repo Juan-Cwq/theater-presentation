@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { StageLights } from "./canvas/StageLights";
+import { Spotlight } from "./ui/Spotlight";
 import { DeckView } from "./presentation/DeckView";
 import { usePresentation } from "./presentation/presentationStore";
 import { useKeyboardControls } from "./presentation/useKeyboardControls";
@@ -68,6 +69,9 @@ export default function App() {
     <main className="relative h-full w-full overflow-hidden bg-bg text-white">
       {/* Ambient golden-brown stage lighting, fixed behind the deck */}
       <StageLights />
+
+      {/* Dim golden spotlight that trails the cursor, behind the cards */}
+      <Spotlight />
 
       {/* The scrollable slide deck */}
       <DeckView locked={whiteboardOn} />
