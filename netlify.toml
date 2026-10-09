@@ -1,0 +1,19 @@
+# Netlify deploy config for the Vite app that lives in the `app/` subfolder.
+# Connect this repo in Netlify (or drag-drop the built `app/dist` folder) and
+# these settings produce a working static deploy. The app uses a relative base
+# ("./") and hash-based routing, so no rewrite is strictly required, but the
+# SPA fallback below keeps any direct URL working.
+
+[build]
+  base = "app"
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# SPA fallback (harmless with hash routing; safe for any direct URL).
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

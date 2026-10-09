@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="38%" r="70%">
+      <stop offset="0%" stop-color="#2A1E31" />
+      <stop offset="100%" stop-color="#120E16" />
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#EBD9A8" />
+      <stop offset="100%" stop-color="#D9AA3F" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#glow)" />
+
+  <!-- marquee bulbs -->
+  <g fill="#D9AA3F">
+    <circle cx="120" cy="90" r="7" opacity="0.9" />
+    <circle cx="180" cy="90" r="7" opacity="0.5" />
+    <circle cx="240" cy="90" r="7" opacity="0.9" />
+    <circle cx="300" cy="90" r="7" opacity="0.5" />
+    <circle cx="360" cy="90" r="7" opacity="0.9" />
+    <circle cx="840" cy="90" r="7" opacity="0.5" />
+    <circle cx="900" cy="90" r="7" opacity="0.9" />
+    <circle cx="960" cy="90" r="7" opacity="0.5" />
+    <circle cx="1020" cy="90" r="7" opacity="0.9" />
+    <circle cx="1080" cy="90" r="7" opacity="0.5" />
+  </g>
+
+  <text x="600" y="150" text-anchor="middle" fill="#D9AA3F"
+        font-family="Inter, sans-serif" font-size="24" letter-spacing="8">
+    CHAPTER 9 · THEATRE APPRECIATION
+  </text>
+
+  <text x="600" y="300" text-anchor="middle" fill="url(#gold)"
+        font-family="'DM Serif Display', Georgia, serif" font-size="92">
+    The American Musical Theatre
+  </text>
+
+  <text x="600" y="380" text-anchor="middle" fill="#F4EEE6"
+        font-family="'DM Serif Display', Georgia, serif" font-size="40" font-style="italic">
+    From The Black Crook to Hamilton
+  </text>
+
+  <text x="600" y="520" text-anchor="middle" fill="#BDB3C4"
+        font-family="Inter, sans-serif" font-size="28">
+    An interactive infinite-canvas presentation
+  </text>
+
+  <text x="600" y="585" text-anchor="middle" font-size="52">&#x1F3AD;</text>
+</svg>

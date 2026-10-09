@@ -1,0 +1,116 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Broadway Marquee design tokens (also exposed as CSS vars for non-Tailwind usage) */
+  --bg: #120e16;
+  --panel: #261c2c;
+  --elevated: #3a2c41;
+  --gold: #d9aa3f;
+  --pale-gold: #ebd9a8;
+  --crimson: #b3283f;
+  --text: #ffffff;
+  --muted-text: #bdb3c4;
+  --off-white: #f4eee6;
+
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: "Inter", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden; /* the canvas owns the whole viewport */
+  overscroll-behavior: none;
+}
+
+/* Visible, theatrical focus rings for keyboard users */
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Thin, themed scrollbars for drawers / read mode */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--elevated) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--elevated);
+  border-radius: 999px;
+}
+
+/* Kicker label utility */
+.kicker {
+  font-family: "Inter", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  font-weight: 600;
+  color: var(--gold);
+  font-size: 0.78rem;
+}
+
+/* Marquee bulb chase — staggered via inline animation-delay */
+@keyframes bulb-chase {
+  0%,
+  100% {
+    opacity: 0.22;
+    box-shadow: 0 0 2px rgba(217, 170, 63, 0.3);
+  }
+  50% {
+    opacity: 1;
+    box-shadow:
+      0 0 8px rgba(217, 170, 63, 0.9),
+      0 0 16px rgba(217, 170, 63, 0.5);
+  }
+}
+
+/* Reduced motion: neutralize non-essential animation */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Utility: screen-reader-only but focusable */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.focus\:not-sr-only:focus {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
