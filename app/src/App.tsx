@@ -70,11 +70,11 @@ export default function App() {
       {/* Ambient golden-brown stage lighting, fixed behind the deck */}
       <StageLights />
 
-      {/* Dim golden spotlight that trails the cursor, behind the cards */}
-      <Spotlight />
-
       {/* The scrollable slide deck */}
       <DeckView locked={whiteboardOn} />
+
+      {/* Dim golden spotlight that trails the cursor and lights the content */}
+      <Spotlight />
 
       {/* Screen-space annotation overlay (freezes the deck while active) */}
       <WhiteboardLayer active={whiteboardOn} />

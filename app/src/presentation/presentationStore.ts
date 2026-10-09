@@ -14,6 +14,13 @@ type Scroller = (n: number, smooth?: boolean) => void;
 
 let scroller: Scroller | null = null;
 
+/**
+ * When advancing/retreating by *key*, the next frame should arrive "in the
+ * dark" (step -1: lights dimmed, year glowing) and wait for the presenter. A
+ * plain scroll instead lands the frame already lit (step 0).
+ */
+let arriveDark = false;
+
 /** DeckView registers a scroll function so the store can drive navigation. */
 export function registerDeckScroller(fn: Scroller | null) {
   scroller = fn;
@@ -23,9 +30,13 @@ interface PresentationState {
   /** 1-based current frame (the one snapped into view). */
   index: number;
   /**
-   * How many reveal "slots" of the current frame are shown (0..frame.reveals).
-   * Keys drive this so the presenter controls the pacing column-by-column;
-   * scrolling between frames always resets it to 0 (a fresh build).
+   * The presenter-driven progress within the current frame:
+   *   -1          → "in the dark": lights dimmed, big year glowing, panel hidden
+   *    0          → lit, title/kicker shown (no columns yet)
+   *    1..reveals → that many columns revealed
+   * Keys step through this (space / arrows) so the presenter controls the whole
+   * pacing — including how long the dark "year" beat lingers before the lights
+   * come up. Scrolling lands a frame lit (step 0).
    */
   step: number;
 
@@ -48,22 +59,29 @@ export const usePresentation = create<PresentationState>((set, get) => ({
   next: () => {
     const { index, step } = get();
     const reveals = frameByNumber(index).reveals;
+    // -1 (dark) → 0 (raise lights) → 1..reveals (columns).
     if (step < reveals) {
       set({ step: step + 1 });
       return;
     }
     const n = clamp(index + 1);
-    if (n !== index) scroller?.(n, true); // setIndex (via scroll) resets step
+    if (n !== index) {
+      arriveDark = true; // the next frame opens in the dark
+      scroller?.(n, true);
+    }
   },
 
   prev: () => {
     const { index, step } = get();
-    if (step > 0) {
+    if (step > -1) {
       set({ step: step - 1 });
       return;
     }
     const n = clamp(index - 1);
-    if (n !== index) scroller?.(n, true);
+    if (n !== index) {
+      arriveDark = true;
+      scroller?.(n, true);
+    }
   },
 
   goTo: (n, opts) => {
@@ -74,7 +92,10 @@ export const usePresentation = create<PresentationState>((set, get) => ({
 
   setIndex: (n) => {
     const next = clamp(n);
-    if (next !== get().index) set({ index: next, step: 0 });
+    if (next !== get().index) {
+      set({ index: next, step: arriveDark ? -1 : 0 });
+      arriveDark = false;
+    }
   },
 }));
 

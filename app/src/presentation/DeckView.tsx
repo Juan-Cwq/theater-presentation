@@ -1,7 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { motion, useAnimationControls } from "framer-motion";
-import { FRAME_H, FRAME_W } from "../canvas/geometry";
-import { prefersReducedMotion } from "../canvas/cameraStore";
+import { motion } from "framer-motion";
+import { ACTS, FRAME_H, FRAME_W } from "../canvas/geometry";
 import { FRAMES, TOTAL_FRAMES } from "../content/frames";
 import type { Frame } from "../content/types";
 import { FrameRenderer } from "../frames/FrameRenderer";
@@ -10,15 +9,17 @@ import { registerDeckScroller, usePresentation } from "./presentationStore";
 
 /**
  * The deck is a native vertical scroll-snap container: one full-viewport
- * section per frame. Scrolling moves between frames; the **arrow keys / space**
- * introduce each frame's columns one at a time so the presenter controls the
- * pacing. Every frame shows a big visible year above its card, and when it
- * becomes active the "lights dim", the year glows out of the dark, and the
- * panel brightens into place — like the stage waking up.
+ * section per frame. The presenter drives the pacing with the **arrow keys /
+ * space**:
+ *   • each frame opens "in the dark" — lights dimmed, its big year glowing —
+ *     and lingers there for as long as you like;
+ *   • the next press raises the lights (a curtain parts at the start of a new
+ *     act, otherwise the dim simply clears) and the panel rises in;
+ *   • further presses introduce the columns one at a time.
+ * Scrolling is a quick jump between frames (landing them already lit).
  *
- * Performance: the browser only paints the one or two sections in view, the
- * wake uses opacity/transform only (composited), and only the active frame
- * animates.
+ * Performance: only the one or two sections in view paint, the dim/curtain/year
+ * use opacity+transform only (composited), and only the active frame animates.
  */
 
 /** Fit the 1600×900 card into the viewport, leaving room for the year + dock. */
@@ -27,6 +28,9 @@ function fitScale() {
   const vh = window.innerHeight;
   return Math.max(0.1, Math.min((vw * 0.9) / FRAME_W, (vh * 0.62) / FRAME_H));
 }
+
+/** Frames that open a new act get a curtain-parting reveal. */
+const ACT_STARTS = new Set(ACTS.map((a) => a.from));
 
 export function DeckView({ locked }: { locked: boolean }) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -107,8 +111,16 @@ export function DeckView({ locked }: { locked: boolean }) {
 const yearFontSize = (year: string) =>
   year.length > 6 ? "min(9vw, 128px)" : "min(13vw, 196px)";
 
-/** Resting state of the big background year: visible but faded, pinned up top. */
-const YEAR_REST = { opacity: 0.17, scale: 1, y: 0, filter: "blur(0px)" } as const;
+const EASE = [0.22, 1, 0.36, 1] as const;
+const CURTAIN_EASE = [0.65, 0, 0.35, 1] as const;
+
+/** Resting state of the year: faded, pinned up top. Dark state: bright, centred. */
+const YEAR_REST = { opacity: 0.17, scale: 1, y: 0 } as const;
+const YEAR_DARK = { opacity: 0.95, scale: 1.18, y: 150 } as const;
+
+const velvet =
+  "repeating-linear-gradient(90deg, #6f1626 0px, #93223a 11px, #6f1626 23px)," +
+  "linear-gradient(#8a1f32, #531120)";
 
 function SlideSection({
   frame,
@@ -121,55 +133,29 @@ function SlideSection({
   isActive: boolean;
   step: number;
 }) {
-  const yearC = useAnimationControls();
-  const veilC = useAnimationControls();
-  const hasMore = isActive && step < frame.reveals;
-
-  // The "wake": dim veil clears while the year glows bright out of the dark and
-  // settles up into its faded resting spot. Runs whenever the frame activates.
-  useEffect(() => {
-    if (!isActive || prefersReducedMotion()) {
-      yearC.set(YEAR_REST);
-      veilC.set({ opacity: 0 });
-      return;
-    }
-    let cancelled = false;
-    veilC.set({ opacity: 0.8 });
-    yearC.set({ opacity: 0.92, scale: 1.14, y: 150, filter: "blur(0px)" });
-    veilC.start({
-      opacity: 0,
-      transition: { duration: 0.6, ease: "easeOut", delay: 0.12 },
-    });
-    yearC
-      .start({
-        ...YEAR_REST,
-        transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] },
-      })
-      .then(() => {
-        if (!cancelled) yearC.set(YEAR_REST);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [isActive, yearC, veilC]);
+  const dark = isActive && step < 0; // in the dark, year glowing, waiting
+  const lit = isActive && step >= 0; // lights up, panel + columns
+  const isActStart = ACT_STARTS.has(frame.n);
+  const showHint = isActive && step < frame.reveals;
 
   return (
     <section
       data-frame={frame.n}
       className="relative flex h-screen w-full snap-start flex-col items-center justify-center gap-1 overflow-hidden px-4"
     >
-      {/* Big visible year, floating above the card */}
+      {/* Big year — glows bright in the dark, then settles faded above the card */}
       {frame.year && (
         <motion.div
           aria-hidden
           className="pointer-events-none z-30 select-none text-center font-display font-bold leading-none text-pale-gold"
           initial={false}
-          animate={yearC}
+          animate={dark ? YEAR_DARK : YEAR_REST}
+          transition={{ duration: 0.8, ease: EASE }}
           style={{
             fontSize: yearFontSize(frame.year),
             letterSpacing: "-0.02em",
             whiteSpace: "nowrap",
-            textShadow: "0 0 40px rgba(217,170,63,0.25)",
+            textShadow: "0 0 44px rgba(217,170,63,0.3)",
           }}
         >
           {frame.year}
@@ -189,44 +175,66 @@ function SlideSection({
             transformOrigin: "top left",
           }}
         >
-          <FrameTransition effect={frame.transition} active={isActive}>
+          <FrameTransition effect={frame.transition} active={lit}>
             <FrameRenderer
               frame={frame}
-              activeCount={isActive ? step : Number.POSITIVE_INFINITY}
+              activeCount={isActive ? Math.max(0, step) : Number.POSITIVE_INFINITY}
               instant={!isActive}
             />
           </FrameTransition>
         </div>
       </div>
 
-      {/* The "lights dim" veil — darkens, then clears as the frame wakes */}
-      <motion.div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 z-20"
-        initial={false}
-        animate={veilC}
-        style={{
-          background:
-            "radial-gradient(130% 90% at 50% 46%, rgba(6,4,9,0.72), rgba(6,4,9,0.96) 75%)",
-        }}
-      />
-
-      {/* Hints */}
-      {frame.n === 1 && !hasMore && (
-        <div
+      {/* The "lights" — a curtain at the start of a new act, else a dim veil */}
+      {isActStart ? (
+        <>
+          <motion.div
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 left-0 z-20 w-1/2"
+            style={{ background: velvet, boxShadow: "inset -30px 0 60px rgba(0,0,0,0.55)" }}
+            initial={false}
+            animate={{ x: lit ? "-100%" : "0%" }}
+            transition={{ duration: 0.9, ease: CURTAIN_EASE }}
+          />
+          <motion.div
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 right-0 z-20 w-1/2"
+            style={{ background: velvet, boxShadow: "inset 30px 0 60px rgba(0,0,0,0.55)" }}
+            initial={false}
+            animate={{ x: lit ? "100%" : "0%" }}
+            transition={{ duration: 0.9, ease: CURTAIN_EASE }}
+          />
+        </>
+      ) : (
+        <motion.div
           aria-hidden
-          className="pointer-events-none absolute bottom-16 left-1/2 z-30 -translate-x-1/2 text-center text-muted-text"
-        >
-          <div className="text-[12px] uppercase tracking-[0.22em]">Scroll</div>
-          <div className="mt-1 animate-bounce text-xl text-gold">↓</div>
-        </div>
+          className="pointer-events-none absolute inset-0 z-20"
+          initial={false}
+          animate={{ opacity: dark ? 1 : 0 }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
+          style={{
+            background:
+              "radial-gradient(130% 90% at 50% 46%, rgba(6,4,9,0.74), rgba(6,4,9,0.97) 75%)",
+          }}
+        />
       )}
-      {hasMore && (
+
+      {/* Hint */}
+      {showHint && (
         <div
           aria-hidden
           className="pointer-events-none absolute bottom-16 left-1/2 z-30 -translate-x-1/2 text-[12px] uppercase tracking-[0.22em] text-muted-text/70"
         >
-          Press <span className="text-gold">→</span> to reveal
+          {dark ? (
+            <>
+              Press <span className="text-gold">→</span>{" "}
+              {isActStart ? "to raise the curtain" : "to begin"}
+            </>
+          ) : (
+            <>
+              Press <span className="text-gold">→</span> to reveal
+            </>
+          )}
         </div>
       )}
     </section>

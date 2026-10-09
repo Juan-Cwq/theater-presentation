@@ -21,9 +21,9 @@ export function useAutoplay(enabled: boolean, onFinish: () => void) {
       onFinishRef.current();
       return;
     }
-    // Pace each reveal slot by a share of the frame's duration.
-    const slots = frame.reveals + 1;
-    const delay = Math.max(1400, (frame.duration ?? 5000) / slots);
+    // Pace each slot (dark beat + title + columns) by a share of the duration.
+    const slots = frame.reveals + 2;
+    const delay = Math.max(1200, (frame.duration ?? 5000) / slots);
     const id = window.setTimeout(() => usePresentation.getState().next(), delay);
     return () => window.clearTimeout(id);
   }, [enabled, index, step]);

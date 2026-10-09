@@ -4,11 +4,11 @@ import { prefersReducedMotion } from "../canvas/cameraStore";
 const RADIUS = 340;
 
 /**
- * A dim golden spotlight that follows the cursor across the stage, behind the
- * slide cards. Optimised: a single fixed, pre-painted radial-gradient disc moved
- * only via `transform` (GPU-composited, no repaints), eased toward the pointer
- * with a short rAF loop that idles when the cursor stops. Disabled under
- * `prefers-reduced-motion`.
+ * A dim golden spotlight that follows the cursor across the stage, lighting up
+ * whatever it's over (it sits above the cards and lightens via a `screen`
+ * blend). Optimised: a single fixed, pre-painted radial-gradient disc moved only
+ * via `transform` (GPU-composited, no repaints), eased toward the pointer with a
+ * short rAF loop that idles when the cursor stops. Off under reduced-motion.
  */
 export function Spotlight() {
   const ref = useRef<HTMLDivElement>(null);
@@ -61,9 +61,11 @@ export function Spotlight() {
         height: RADIUS * 2,
         borderRadius: "50%",
         pointerEvents: "none",
+        zIndex: 15,
+        mixBlendMode: "screen",
         willChange: "transform",
         background:
-          "radial-gradient(circle, rgba(217,170,63,0.12), rgba(217,170,63,0.045) 42%, transparent 70%)",
+          "radial-gradient(circle, rgba(255,214,130,0.22), rgba(217,170,63,0.08) 45%, transparent 70%)",
       }}
     />
   );

@@ -10,9 +10,9 @@ const GROUPS: { title: string; items: Shortcut[] }[] = [
   {
     title: "Navigate",
     items: [
-      { keys: ["→", "Space"], label: "Reveal next column · then next frame" },
-      { keys: ["←"], label: "Hide last column · then previous frame" },
-      { keys: ["Scroll"], label: "Jump between frames" },
+      { keys: ["→", "Space"], label: "Raise the lights · reveal next column · then next frame" },
+      { keys: ["←"], label: "Hide last column · dim back to the year · then previous frame" },
+      { keys: ["Scroll"], label: "Jump straight to a frame (already lit)" },
       { keys: ["PgUp", "PgDn"], label: "Clicker back / forward" },
       { keys: ["Esc"], label: "Close an open panel" },
     ],
